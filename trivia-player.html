@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Trivia Night — Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --card: #1a1a24;
+    --accent: #f0c040;
+    --accent2: #e05a5a;
+    --accent3: #5abeaa;
+    --text: #f0eee8;
+    --muted: #888;
+    --border: rgba(255,255,255,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(240,192,64,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none; flex-direction: column;
+    min-height: 100vh; padding: 32px 24px;
+    align-items: center; justify-content: center; gap: 24px;
+  }
+  .screen.active { display: flex; }
+
+  /* ── JOIN ── */
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px; letter-spacing: 0.06em;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(240,192,64,0.3);
+    text-align: center;
+    line-height: 1;
+  }
+  .logo span { color: var(--text); }
+  .subtitle {
+    font-size: 16px; color: var(--muted);
+    text-align: center; letter-spacing: 0.02em;
+  }
+  .input-group { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+  .name-input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 20px; font-weight: 500;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+  }
+  .name-input:focus { border-color: var(--accent); }
+  .name-input::placeholder { color: var(--muted); }
+  .join-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px; letter-spacing: 0.1em;
+    border: none; cursor: pointer;
+    padding: 18px; border-radius: 12px;
+    transition: transform 0.15s, opacity 0.2s;
+    box-shadow: 0 4px 24px rgba(240,192,64,0.3);
+  }
+  .join-btn:active { transform: scale(0.97); }
+  .join-btn:disabled { opacity: 0.35; }
+
+  /* ── WAITING ── */
+  .waiting-icon {
+    font-size: 64px;
+    animation: float 2.5s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .waiting-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px; letter-spacing: 0.1em; color: var(--muted);
+    text-align: center;
+  }
+  .player-name-display {
+    font-size: 22px; font-weight: 700; color: var(--text);
+    background: var(--card);
+    padding: 12px 28px; border-radius: 50px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── ANSWERING ── */
+  #answering-screen { justify-content: flex-start; padding-top: 40px; }
+  .round-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 0.15em;
+    color: var(--muted);
+    text-align: center;
+  }
+  .question-preview {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 22px 24px;
+    font-size: 20px; font-weight: 700;
+    line-height: 1.5;
+    color: var(--text);
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(240,192,64,0.1);
+  }
+  .choices-list {
+    width: 100%; display: flex; flex-direction: column; gap: 12px;
+  }
+  .choice-btn {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    text-align: left;
+  }
+  .choice-btn:active { transform: scale(0.98); }
+  .choice-btn.selected {
+    border-color: var(--accent);
+    background: rgba(240,192,64,0.12);
+  }
+  .choice-btn.selected-correct {
+    border-color: var(--accent3);
+    background: rgba(90,190,170,0.15);
+  }
+  .choice-btn.selected-wrong {
+    border-color: var(--accent2);
+    background: rgba(224,90,90,0.12);
+  }
+  .choice-btn.reveal-correct {
+    border-color: var(--accent3);
+    background: rgba(90,190,170,0.1);
+  }
+  .choice-btn:disabled { cursor: default; }
+  .btn-letter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 0.08em;
+    color: var(--accent); min-width: 24px;
+  }
+  .choice-btn.selected .btn-letter { color: var(--accent); }
+  .choice-btn.selected-correct .btn-letter,
+  .choice-btn.reveal-correct .btn-letter { color: var(--accent3); }
+  .btn-text { font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--text); }
+
+  /* ── ANSWERED ── */
+  .answered-icon { font-size: 72px; }
+  .answered-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px; letter-spacing: 0.08em;
+    color: var(--accent); text-align: center;
+  }
+  .answered-sub { font-size: 16px; color: var(--muted); text-align: center; }
+
+  /* ── ROUND RESULT ── */
+  .result-hero { font-size: 80px; }
+  .result-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px; letter-spacing: 0.08em;
+    text-align: center;
+  }
+  .result-headline.correct { color: var(--accent3); }
+  .result-headline.wrong { color: var(--accent2); }
+  .result-detail { font-size: 16px; color: var(--muted); text-align: center; line-height: 1.5; }
+  .score-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; color: var(--accent); letter-spacing: 0.05em;
+  }
+
+  /* ── FINAL ── */
+  .final-hero { font-size: 80px; }
+  .final-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px; letter-spacing: 0.08em;
+    color: var(--accent); text-align: center;
+  }
+  .final-score-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px; color: var(--text);
+    line-height: 1;
+  }
+  .final-score-label { font-size: 16px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .final-rank { font-size: 18px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- JOIN -->
+  <div class="screen active" id="join-screen">
+    <div class="logo">TRIVIA<span>NIGHT</span></div>
+    <div class="subtitle">Enter your name to join the game</div>
+    <div class="input-group">
+      <input class="name-input" id="name-input" type="text" placeholder="Your name" maxlength="16" autocomplete="off">
+      <button class="join-btn" id="join-btn" onclick="joinGame()">JOIN</button>
+    </div>
+  </div>
+
+  <!-- WAITING FOR HOST -->
+  <div class="screen" id="waiting-screen">
+    <div class="waiting-icon">🎮</div>
+    <div class="waiting-title">YOU'RE IN!</div>
+    <div class="player-name-display" id="display-name"></div>
+    <div class="subtitle">Waiting for the host to start the game…</div>
+  </div>
+
+  <!-- ANSWERING -->
+  <div class="screen" id="answering-screen">
+    <div class="round-badge" id="player-round-badge">ROUND 1</div>
+    <div class="question-preview" id="player-question-text"></div>
+    <div class="choices-list" id="player-choices"></div>
+  </div>
+
+  <!-- ANSWERED (waiting for others) -->
+  <div class="screen" id="answered-screen">
+    <div class="answered-icon">✅</div>
+    <div class="answered-title">LOCKED IN!</div>
+    <div class="answered-sub">Waiting for other players…</div>
+  </div>
+
+  <!-- ROUND RESULT -->
+  <div class="screen" id="round-result-screen">
+    <div class="result-hero" id="result-hero"></div>
+    <div class="result-headline" id="result-headline"></div>
+    <div class="result-detail" id="result-detail"></div>
+    <div class="score-display" id="result-score"></div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="screen" id="final-screen">
+    <div class="final-hero">🏆</div>
+    <div class="final-headline">GAME OVER</div>
+    <div class="final-score-big" id="final-score-big"></div>
+    <div class="final-score-label">POINTS</div>
+    <div class="final-rank" id="final-rank"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA3k7kX0fioZSSQ47rXPIJFchbocoVOe9c",
+  authDomain: "triv-b7649.firebaseapp.com",
+  projectId: "triv-b7649",
+  storageBucket: "triv-b7649.firebasestorage.app",
+  messagingSenderId: "814483519233",
+  appId: "1:814483519233:web:28d92acc2dc0aab0e6cd00",
+  databaseURL: "https://triv-b7649-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const GAME_ID = "game1";
+
+let playerId = null;
+let playerName = null;
+let myChoice = null;
+let currentRound = 0;
+let myScore = 0;
+let resultShownForRound = -1;
+let cachedQuestion = null;
+
+// ── Join ──
+window.joinGame = async function() {
+  const input = document.getElementById('name-input');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+
+  document.getElementById('join-btn').disabled = true;
+  playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  playerName = name;
+
+  await set(ref(db, `${GAME_ID}/players/${playerId}`), { name, score: 0 });
+  document.getElementById('display-name').textContent = name;
+  show('waiting-screen');
+  watchGame();
+};
+
+// Allow Enter key on name input
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.joinGame();
+});
+
+// ── Watch game state ──
+function watchGame() {
+  onValue(ref(db, GAME_ID), snap => {
+    const game = snap.val();
+    if (!game) return;
+
+    switch(game.status) {
+      case 'lobby':
+        show('waiting-screen');
+        break;
+      case 'generating':
+        show('waiting-screen');
+        break;
+      case 'question':
+        if (game.question && game.question.round && game.question.choices && game.question.round !== currentRound) {
+          currentRound = game.question.round;
+          cachedQuestion = game.question;
+          myChoice = null;
+          renderQuestion(game.question);
+          show('answering-screen');
+        }
+        break;
+      case 'results':
+        if (myChoice !== null && resultShownForRound !== currentRound && cachedQuestion) {
+          resultShownForRound = currentRound;
+          const correct = parseInt(myChoice) === cachedQuestion.correct;
+          if (correct) myScore++;
+          showRoundResult(correct, cachedQuestion);
+        }
+        break;
+      case 'final':
+        showFinal(game.scores);
+        break;
+    }
+  });
+}
+
+// ── Render question ──
+function renderQuestion(q) {
+  document.getElementById('player-round-badge').textContent = `ROUND ${q.round}`;
+  document.getElementById('player-question-text').textContent = q.question;
+  const letters = ['A','B','C','D'];
+  document.getElementById('player-choices').innerHTML = q.choices.map((c, i) =>
+    `<button class="choice-btn" id="pbtn-${i}" onclick="submitAnswer(${i})">
+      <div class="btn-letter">${letters[i]}</div>
+      <div class="btn-text">${c}</div>
+    </button>`
+  ).join('');
+}
+
+// ── Submit answer ──
+window.submitAnswer = async function(choiceIdx) {
+  if (myChoice !== null) return;
+  myChoice = choiceIdx;
+
+  // Disable all buttons, highlight selected
+  ['A','B','C','D'].forEach((_, i) => {
+    const btn = document.getElementById(`pbtn-${i}`);
+    if (btn) {
+      btn.disabled = true;
+      if (i === choiceIdx) btn.classList.add('selected');
+    }
+  });
+
+  await set(ref(db, `${GAME_ID}/answers/${playerId}`), {
+    choice: choiceIdx,
+    name: playerName
+  });
+
+  show('answered-screen');
+};
+
+// ── Round result ──
+function showRoundResult(correct, question) {
+  document.getElementById('result-hero').textContent = correct ? '🎉' : '😬';
+  const headline = document.getElementById('result-headline');
+  headline.textContent = correct ? 'CORRECT!' : 'WRONG!';
+  headline.className = 'result-headline ' + (correct ? 'correct' : 'wrong');
+  document.getElementById('result-detail').textContent = correct
+    ? 'Nice one!'
+    : `The answer was: ${question.choices[question.correct]}`;
+  document.getElementById('result-score').textContent = `${myScore} point${myScore !== 1 ? 's' : ''}`;
+  show('round-result-screen');
+}
+
+// ── Final ──
+function showFinal(scores) {
+  const myFinalScore = scores && scores[playerId] ? scores[playerId] : myScore;
+  document.getElementById('final-score-big').textContent = myFinalScore;
+
+  // Rank
+  if (scores) {
+    const sorted = Object.values(scores).sort((a, b) => b - a);
+    const rank = sorted.indexOf(myFinalScore) + 1;
+    const ordinal = ['1st','2nd','3rd','4th'][rank-1] || `${rank}th`;
+    document.getElementById('final-rank').textContent = `You finished ${ordinal} place`;
+  }
+  show('final-screen');
+}
+
+// ── Screen helper ──
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('active', s.id === id);
+  });
+}
+</script>
+</body>
+</html>
