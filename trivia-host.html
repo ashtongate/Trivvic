@@ -623,11 +623,15 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
 The "correct" field is the 0-based index of the correct answer in the choices array.
 Make questions fun and suitable for adults. Mix easy, medium and hard difficulty.`;
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      { method: "POST", headers: { "Content-Type": "application/json" },
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+      { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9 } }) }
     );
-    if (!res.ok) throw new Error(`Gemini ${res.status}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const errMsg = errBody?.error?.message || errBody?.error?.status || `HTTP ${res.status}`;
+      throw new Error(`Gemini ${res.status}: ${errMsg}`);
+    }
     const data = await res.json();
     const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim();
     G.questionBank = JSON.parse(text);
@@ -636,7 +640,7 @@ Make questions fun and suitable for adults. Mix easy, medium and hard difficulty
   } catch(e) {
     console.error("fetchQuestions failed:", e);
     if (genLabel) genLabel.textContent = "Error: " + e.message;
-    await sleep(3000);
+    await sleep(6000);
     G.questionBank = Array.from({length: TOTAL_ROUNDS}, (_, i) => ({
       question: `Question ${i+1} unavailable`, choices: ["A","B","C","D"], correct: 0
     }));
