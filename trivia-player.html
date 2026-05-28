@@ -354,7 +354,7 @@ function watchGame() {
 // ── Render question ──
 function renderQuestion(q) {
   document.getElementById('player-round-badge').textContent = `ROUND ${q.round}`;
-  document.getElementById('player-question-text').textContent = q.text || q.question || '';
+  document.getElementById('player-question-text').textContent = q.question || q.text || '';
   const letters = ['A','B','C','D'];
   document.getElementById('player-choices').innerHTML = q.choices.map((c, i) =>
     `<button class="choice-btn" id="pbtn-${i}" onclick="submitAnswer(${i})">
